@@ -5,6 +5,7 @@ import numpy as np
 import cv2
 import torch
 
+
 def get_files(path):
     # read a folder, return the complete path
     ret = []
@@ -13,23 +14,26 @@ def get_files(path):
             ret.append(os.path.join(root, filespath))
     return ret
 
-def estimate(pred, target, pixel_max_cnt = 255):
-    mse = np.multiply(target - pred, target - pred)
+
+def estimate(pred, target, pixel_max_cnt=255):
+    mse = (pred/1. - target/1.) ** 2
     rmse_avg = (np.mean(mse)) ** 0.5
     psnr = 20 * np.log10(pixel_max_cnt / rmse_avg)
-    l2 = np.mean(mse)
-    l1 = np.mean(np.abs(target - pred))
+    l2 = np.mean(mse) / pixel_max_cnt ** 2
+    l1 = np.mean(np.abs(target/1. - pred/1.)) / pixel_max_cnt
     return psnr, l2, l1
+
 
 if __name__ == "__main__":
 
     # arguments
     parser = argparse.ArgumentParser()
-    parser.add_argument('--baseroot', type = str, default = 'C:\\Users\\yzzha\\Desktop\\dataset\\ILSVRC2012_val_256', help = 'root')
-    parser.add_argument('--num', type = int, default = 1000, help = 'number of sample images')
-    parser.add_argument('--range', type = str, default = '01', help = 'normalization range, e.g. 01 represents [0, 1]')
-    parser.add_argument('--gray', type = bool, default = True, help = 'False for color images, True for grayscale')
-    parser.add_argument('--noise_scale', type = float, default = 0.01, help = 'Gaussian noise standard deviation')
+    parser.add_argument('--baseroot', type=str, default='C:\\Users\\yzzha\\Desktop\\dataset\\ILSVRC2012_val_256',
+                        help='root')
+    parser.add_argument('--num', type=int, default=1000, help='number of sample images')
+    parser.add_argument('--range', type=str, default='01', help='normalization range, e.g. 01 represents [0, 1]')
+    parser.add_argument('--gray', type=bool, default=True, help='False for color images, True for grayscale')
+    parser.add_argument('--noise_scale', type=float, default=0.01, help='Gaussian noise standard deviation')
     opt = parser.parse_args()
 
     # random sample all the images
@@ -47,7 +51,7 @@ if __name__ == "__main__":
             if opt.gray:
                 img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
             img = img / 255.0
-            noise = np.random.normal(loc = 0.0, scale = opt.noise_scale, size = img.shape)
+            noise = np.random.normal(loc=0.0, scale=opt.noise_scale, size=img.shape)
             img_noise = img + noise
             current_psnr, l2, l1 = estimate(img_noise, img, 1)
             print('PSNR:', current_psnr)
@@ -71,7 +75,7 @@ if __name__ == "__main__":
             if opt.gray:
                 img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
             img = (img - 128.0) / 128.0
-            noise = np.random.normal(loc = 0.0, scale = opt.noise_scale, size = img.shape)
+            noise = np.random.normal(loc=0.0, scale=opt.noise_scale, size=img.shape)
             img_noise = img + noise
             current_psnr, l2, l1 = estimate(img_noise, img, 1)
             print('PSNR:', current_psnr)
@@ -94,7 +98,7 @@ if __name__ == "__main__":
             img = cv2.imread(imgname).astype(np.float32)
             if opt.gray:
                 img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-            noise = np.random.normal(loc = 0.0, scale = opt.noise_scale, size = img.shape)
+            noise = np.random.normal(loc=0.0, scale=opt.noise_scale, size=img.shape)
             img_noise = img + noise
             current_psnr, l2, l1 = estimate(img_noise, img, 1)
             print('PSNR:', current_psnr)

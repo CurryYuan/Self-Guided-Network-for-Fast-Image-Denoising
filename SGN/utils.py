@@ -6,6 +6,7 @@ import os
 
 import network
 
+
 def text_readlines(filename):
     # Try to read a txt file and return a list.Return [] if there was a mistake.
     try:
@@ -16,26 +17,29 @@ def text_readlines(filename):
     content = file.readlines()
     # This for loop deletes the EOF (like \n)
     for i in range(len(content)):
-        content[i] = content[i][:len(content[i])-1]
+        content[i] = content[i][:len(content[i]) - 1]
     file.close()
     return content
 
+
 def create_generator(opt):
-    if opt.pre_train:
-        # Initialize the network
-        generator = network.SGN(opt)
-        # Init the network
-        network.weights_init(generator, init_type = opt.init_type, init_gain = opt.init_gain)
-        print('Generator is created!')
-    else:
+    if opt.load:
         # Initialize the network
         generator = network.SGN(opt)
         # Load a pre-trained network
-        pretrained_net = torch.load(opt.load_name + '.pth')
+        pretrained_net = torch.load(opt.load)
         load_dict(generator, pretrained_net)
         print('Generator is loaded!')
+    else:
+        # Initialize the network
+        generator = network.SGN(opt)
+        # Init the network
+        network.weights_init(generator, init_type=opt.init_type, init_gain=opt.init_gain)
+        print('Generator is created!')
+
     return generator
-    
+
+
 def load_dict(process_net, pretrained_net):
     # Get the dict from pre-trained network
     pretrained_dict = pretrained_net.state_dict()
@@ -49,27 +53,31 @@ def load_dict(process_net, pretrained_net):
     process_net.load_state_dict(process_dict)
     return process_net
 
+
 def savetxt(name, loss_log):
     np_loss_log = np.array(loss_log)
     np.savetxt(name, np_loss_log)
 
+
 def get_files(path):
     # read a folder, return the complete path
     ret = []
-    for root, dirs, files in os.walk(path):  
-        for filespath in files: 
-            ret.append(os.path.join(root,filespath)) 
+    for root, dirs, files in os.walk(path):
+        for filespath in files:
+            ret.append(os.path.join(root, filespath))
     return ret
+
 
 def get_jpgs(path):
     # read a folder, return the image name
-    ret = [] 
-    for root, dirs, files in os.walk(path):  
-        for filespath in files: 
-            ret.append(filespath) 
+    ret = []
+    for root, dirs, files in os.walk(path):
+        for filespath in files:
+            ret.append(filespath)
     return ret
 
-def text_save(content, filename, mode = 'a'):
+
+def text_save(content, filename, mode='a'):
     # save a list to a txt
     # Try to save a list variable in txt file.
     file = open(filename, mode)

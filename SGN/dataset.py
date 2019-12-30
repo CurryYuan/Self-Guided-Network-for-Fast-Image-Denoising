@@ -9,6 +9,7 @@ from torchvision import transforms
 
 import utils
 
+
 class RandomCrop(object):
     def __init__(self, image_size, crop_size):
         self.ch, self.cw = crop_size
@@ -26,10 +27,11 @@ class RandomCrop(object):
         else:
             return img[self.h1: self.h2, self.w1: self.w2]
 
+
 class DenoisingDataset(Dataset):
-    def __init__(self, opt):                                   		    # root: list ; transform: torch transform
+    def __init__(self, opt):  # root: list ; transform: torch transform
         self.opt = opt
-        self.imglist = utils.get_files(opt.baseroot)
+        self.imglist = utils.get_files(opt.dataroot)
 
     def __getitem__(self, index):
         ## read an image
@@ -49,7 +51,7 @@ class DenoisingDataset(Dataset):
                 if H_out < self.opt.crop_size:
                     H_out = self.opt.crop_size
                     W_out = int(math.floor(W_in * float(H_out) / float(H_in)))
-            else: # W_out < H_out
+            else:  # W_out < H_out
                 if W_out < self.opt.crop_size:
                     W_out = self.opt.crop_size
                     H_out = int(math.floor(H_in * float(W_out) / float(W_in)))
@@ -64,10 +66,10 @@ class DenoisingDataset(Dataset):
             if rotate != 0:
                 img = np.rot90(img, rotate)
             if random.random() >= 0.5:
-                img = cv2.flip(img, flipCode = 0)
-        
+                img = cv2.flip(img, flipCode=0)
+
         # add noise
-        img = img.astype(np.float32) # RGB image in range [0, 255]
+        img = img.astype(np.float32)  # RGB image in range [0, 255]
         noise = np.random.normal(self.opt.mu, self.opt.sigma, img.shape).astype(np.float32)
         noisy_img = img + noise
 
@@ -78,14 +80,15 @@ class DenoisingDataset(Dataset):
         noisy_img = torch.from_numpy(noisy_img.transpose(2, 0, 1)).contiguous()
 
         return noisy_img, img
-    
+
     def __len__(self):
         return len(self.imglist)
 
+
 class FullResDenoisingDataset(Dataset):
-    def __init__(self, opt):                                   		    # root: list ; transform: torch transform
+    def __init__(self, opt):  # root: list ; transform: torch transform
         self.opt = opt
-        self.imglist = utils.get_files(opt.baseroot)
+        self.imglist = utils.get_files(opt.dataroot)
 
     def __getitem__(self, index):
         ## read an image
@@ -93,14 +96,15 @@ class FullResDenoisingDataset(Dataset):
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 
         ## re-arrange the data for fitting network
-        H_in = img[0].shape[0]
-        W_in = img[0].shape[1]
-        H_out = int(math.floor(H_in / 8)) * 8
-        W_out = int(math.floor(W_in / 8)) * 8
-        img = cv2.resize(img, (W_out, H_out))
-        
+        H_in = img.shape[0]
+        W_in = img.shape[1]
+        # H_out = int(math.floor(H_in / 8 * self.opt.scale)) * 8
+        # W_out = int(math.floor(W_in / 8 * self.opt.scale)) * 8
+        # img = cv2.resize(img, (W_out, H_out))
+        img = cv2.resize(img, (256, 256))
+
         # add noise
-        img = img.astype(np.float32) # RGB image in range [0, 255]
+        img = img.astype(np.float32)  # RGB image in range [0, 255]
         noise = np.random.normal(self.opt.mu, self.opt.sigma, img.shape).astype(np.float32)
         noisy_img = img + noise
 
@@ -111,6 +115,6 @@ class FullResDenoisingDataset(Dataset):
         noisy_img = torch.from_numpy(noisy_img.transpose(2, 0, 1)).contiguous()
 
         return noisy_img, img
-    
+
     def __len__(self):
         return len(self.imglist)

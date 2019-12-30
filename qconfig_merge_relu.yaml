@@ -1,0 +1,120 @@
+refactor:
+  do_flatten: true
+  do_extract: true
+
+replace_modules:
+- by: sequence
+  pattern_class_name: ConvReLUMatcher
+  refactor_function: refactor_conv_relu
+  qparams:
+    qw_param:
+      type: QSignedAsymLinearTrait
+      kwargs:
+        quant_function:
+          type: asymmetric_quant
+        bit_width: 8
+        range_method:
+          type: tensor_range
+    qb_param:
+      type: QSignedAsymLinearBiasTrait
+      kwargs:
+        quant_function:
+          type: asymmetric_quant
+        bit_width: 32
+        range_method:
+          type: tensor_range
+    qi_params: # quantize input only
+    - type: QSignedAsymLinearEMATrait
+      kwargs:
+        quant_function:
+          type: asymmetric_quant
+        bit_width: 8
+        range_method:
+          type: tensor_range
+- by: sequence
+  pattern_class_name: LinearReLUMatcher
+  refactor_function: refactor_linear_relu
+  qparams:
+    qw_param:
+      type: QSignedAsymLinearTrait
+      kwargs:
+        quant_function:
+          type: asymmetric_quant
+        bit_width: 8
+        range_method:
+          type: tensor_range
+    qb_param:
+      type: QSignedAsymLinearBiasTrait
+      kwargs:
+        quant_function:
+          type: asymmetric_quant
+        bit_width: 32
+        range_method:
+          type: tensor_range
+    qi_params: # quantize input only
+    - type: QSignedAsymLinearEMATrait
+      kwargs:
+        quant_function:
+          type: asymmetric_quant
+        bit_width: 8
+        range_method:
+          type: tensor_range
+- by: name
+  pattern: fc2 # last layer, quantize all
+  factory: q_linear_bias
+  qparams:
+    qw_param:
+      type: QSignedAsymLinearTrait
+      kwargs:
+        quant_function:
+          type: asymmetric_quant
+        bit_width: 8
+        range_method:
+          type: tensor_range
+    qb_param:
+      type: QSignedAsymLinearBiasTrait
+      kwargs:
+        quant_function:
+          type: asymmetric_quant
+        bit_width: 32
+        range_method:
+          type: tensor_range
+    qi_params:
+    - type: QSignedAsymLinearEMATrait
+      kwargs:
+        quant_function:
+          type: asymmetric_quant
+        bit_width: 8
+        range_method:
+          type: tensor_range
+    qo_params:
+    - type: QSignedAsymLinearTrait
+      kwargs:
+        quant_function:
+          type: asymmetric_quant
+        bit_width: 8
+        range_method:
+          type: tensor_range
+
+scheduler:
+  actions:
+  - type: StepAction
+    selector:
+      qp_attr_pattern: qw_param
+    action: activate
+    moment: before_forward
+    step: 0
+
+  - type: StepAction
+    selector:
+      qp_attr_pattern: qi_params.*|qo_params.*
+    action: activate
+    moment: before_forward
+    step: 1000
+
+  - type: StepAction
+    selector:
+      qp_attr_pattern: qi_params.*|qo_params.*
+    action: freeze
+    moment: before_forward
+    step: 2000
