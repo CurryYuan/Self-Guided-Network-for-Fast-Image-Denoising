@@ -14,7 +14,6 @@ import utils
 import validation
 import unet
 
-from pytorch_msssim import MS_SSIM, ms_ssim
 from torch.utils.tensorboard import SummaryWriter
 
 from spring.dirichlet import dirichlet, set_logger_path, set_tb_logger
@@ -22,11 +21,6 @@ from spring.dirichlet.convert import pytorch_to_caffe
 import runpy
 import yaml
 import os
-
-
-class MS_SSIM_Loss(MS_SSIM):
-    def forward(self, img1, img2):
-        return 1 - super(MS_SSIM_Loss, self).forward(img1, img2)
 
 
 def Trainer(opt):
@@ -61,46 +55,6 @@ def Trainer(opt):
     except OSError:
         pass
 
-    ####################################################################
-    # Load and quantize model (to caffe)
-    if opt.quantize:
-        input_shapes = [[1, 3, 256, 256], ]
-        dummy_inputs = tuple(map(lambda x: torch.randn(*x), input_shapes))
-        seq_pattern_ext = {}
-        replace_factory_ext = {}
-        if opt.seq_pattern_path is not None:
-            seq_pattern_ext = runpy.run_path(opt.seq_pattern_path)
-        if opt.replace_factory_path is not None:
-            replace_factory_ext = runpy.run_path(opt.replace_factory_path)
-        with open(opt.qconfig) as f:
-            qconfig = yaml.load(f)
-        save_path = 'log/to_caffe' if opt.to_caffe else 'log'
-
-        # set logger path for Dirichlet
-        set_logger_path(save_path + '/dirichlet.log')
-        set_tb_logger(SummaryWriter(save_path + '/events_dirichlet'))
-
-        print(model)
-
-        # quantize the network first, and then load the quantized checkpoint
-        scheduler = dirichlet(
-            model, dummy_inputs, qconfig,
-            seq_pattern_globals=seq_pattern_ext,
-            replace_factory_globals=replace_factory_ext
-        )
-
-        if opt.load_quantized_model:
-            # load scheduler state if load a quantized checkpoint
-            scheduler.load_state_dict(torch.load(opt.load_scheduler_path))
-
-    if opt.to_caffe:
-        pytorch_to_caffe.convert(
-            model, dummy_inputs, input_names=['input'],
-            output_names=['output'], out_path=save_path,
-            filename='test')
-        return
-    ####################################################################
-
     writer = SummaryWriter(comment=f'_{opt.model}_LR_{opt.lr}_BS_{opt.batch_size}')
 
     # To device
@@ -134,7 +88,6 @@ def Trainer(opt):
                            '%s_epoch%d_bs%d_mu%d_sigma%d.pth' % (
                                opt.model, epoch, opt.batch_size, opt.mu, opt.sigma))
             print('The trained model is successfully saved at epoch %d' % (epoch))
-            torch.save(scheduler.state_dict(), dir_checkpoint + 'quant_16_dirichlet_scheduler.pt')
 
         if (epoch % opt.validate_interval == 0) and (iteration % len_dataset == 0):
             psnr = validation.validate(network, opt)
@@ -168,36 +121,16 @@ def Trainer(opt):
             noisy_img = noisy_img.cuda()
             img = img.cuda()
 
-            if opt.quantize:
-                # Train model
-                optimizer_G.zero_grad()
-                # exec actions before backward
-                scheduler.before_backward()
+            # Train model
+            optimizer_G.zero_grad()
 
-                # Forword propagation
-                recon_img = model(noisy_img)
-                loss = criterion(recon_img, img)
+            # Forword propagation
+            recon_img = model(noisy_img)
+            loss = criterion(recon_img, img)
 
-                # Overall Loss and optimize
-                loss.backward()
-                # exec actions before optimize step
-                scheduler.before_optim_step()
-                optimizer_G.step()
-                # exec actions after optimize step
-                scheduler.after_optim_step()
-                # dirichlet scheduler step
-                scheduler.step()
-            else:
-                # Train model
-                optimizer_G.zero_grad()
-
-                # Forword propagation
-                recon_img = model(noisy_img)
-                loss = criterion(recon_img, img)
-
-                # Overall Loss and optimize
-                loss.backward()
-                optimizer_G.step()
+            # Overall Loss and optimize
+            loss.backward()
+            optimizer_G.step()
 
             # Determine approximate time left
             iters_done = epoch * len(dataloader) + i
