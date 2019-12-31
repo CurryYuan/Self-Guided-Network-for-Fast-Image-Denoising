@@ -3,6 +3,7 @@
 The PyTorch implementation of SGN (ICCV 2019), modified from https://github.com/zhaoyuzhi/Self-Guided-Network-for-Fast-Image-Denoising
 
 add U-Net and quantization
+
 ## Result
 
 Sigma=30, DIV2K		
