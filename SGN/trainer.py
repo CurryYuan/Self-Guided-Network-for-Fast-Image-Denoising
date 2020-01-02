@@ -79,14 +79,9 @@ def Trainer(opt):
     def save_model(opt, epoch, iteration, len_dataset, network):
         """Save the model at "checkpoint_interval" and its multiple"""
         if (epoch % opt.save_interval == 0) and (iteration % len_dataset == 0):
-            if opt.quantize:
-                torch.save(network.module.state_dict(), dir_checkpoint +
-                           'quant_8_%s_epoch%d_bs%d_mu%d_sigma%d.pth' % (
+            torch.save(network, dir_checkpoint +
+                       '%s_epoch%d_bs%d_mu%d_sigma%d.pth' % (
                            opt.model, epoch, opt.batch_size, opt.mu, opt.sigma))
-            else:
-                torch.save(network, dir_checkpoint +
-                           '%s_epoch%d_bs%d_mu%d_sigma%d.pth' % (
-                               opt.model, epoch, opt.batch_size, opt.mu, opt.sigma))
             print('The trained model is successfully saved at epoch %d' % (epoch))
 
         if (epoch % opt.validate_interval == 0) and (iteration % len_dataset == 0):

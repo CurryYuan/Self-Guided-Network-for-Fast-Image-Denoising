@@ -52,27 +52,7 @@ if __name__ == "__main__":
     parser.add_argument('--scale_max', type=float, default=1, help='max scaling factor')
     parser.add_argument('--mu', type=int, default=0, help='Gaussian noise mean')
     parser.add_argument('--sigma', type=int, default=30, help='Gaussian noise variance: 30 | 50 | 70')
-    #####################################################################
-    # Args for Quantization
-    parser.add_argument('--quantize', action='store_true', default=False,
-                        help='Whether quantize')
 
-    parser.add_argument('--seq-pattern-path', type=str, default=None,
-                        help='Path for sequence pattern extension')
-    parser.add_argument('--replace-factory-path', type=str, default=None,
-                        help='Path for replace factory extension')
-
-    parser.add_argument('--qconfig', type=str, default=None,
-                        help='Path for quantization config')
-
-    parser.add_argument('--load-quantized-model', action='store_true', default=False,
-                        help='Wether loading quantized Model')
-    parser.add_argument('--load-scheduler-path', type=str, default=None,
-                        help='Path for loading dirichlet scheduler')
-
-    parser.add_argument('--to-caffe', action='store_true', default=False,
-                        help='Wether to caffe')
-    #####################################################################
     opt = parser.parse_args()
 
     # ----------------------------------------
