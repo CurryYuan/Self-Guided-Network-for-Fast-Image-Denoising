@@ -16,8 +16,6 @@ import unet
 
 from torch.utils.tensorboard import SummaryWriter
 
-from spring.dirichlet import dirichlet, set_logger_path, set_tb_logger
-from spring.dirichlet.convert import pytorch_to_caffe
 import runpy
 import yaml
 import os
